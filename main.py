@@ -62,14 +62,22 @@ def check_appointment(config):
         # Doldurmaya başlayalım
         for dropdown_id, value in config['dropdowns'].items():  
             try:  
-                logger.error("eklendi")
-                dropdown = WebDriverWait(driver, 10).until(  
-                    EC.presence_of_element_located((By.ID, dropdown_id))  
-                )  
-                select = Select(dropdown)  
-                select.select_by_visible_text(value)  
-                logger.info(f"{dropdown_id} dolduruldu")  
-                time.sleep(5)  # Her dropdown sonrası kısa bekleme  
+                # Önce dropdown'u aç                
+                dropdown_element = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable((By.ID, dropdown_id))
+                )
+                dropdown_element.click()
+                time.sleep(1)  # Dropdown menünün açılması için kısa bekleme
+
+                # Dropdown içindeki seçeneklerden istediğimiz değeri bul ve tıkla
+                option = WebDriverWait(driver, 2).until(
+                    EC.element_to_be_clickable((By.XPATH, f"//div[@role='option'][contains(., '{value}')]"))
+                )
+                logger.info(value)
+                option.click()
+                
+                logger.info(f"{dropdown_id} dolduruldu")
+                time.sleep(1)  # Her seçim sonrası kısa bekleme
             except Exception as e:  
                 logger.error(f"{dropdown_id} doldurulurken hata: {e}")  
                 raise  
