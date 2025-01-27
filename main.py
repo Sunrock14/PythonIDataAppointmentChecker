@@ -3,6 +3,7 @@ import time
 from datetime import datetime  
 import logging  
 from selenium import webdriver  
+from seleniumbase import Driver
 from selenium.webdriver.common.by import By  
 from selenium.webdriver.support.ui import Select  
 from selenium.webdriver.support.ui import WebDriverWait  
@@ -46,7 +47,7 @@ def send_telegram_message(bot_token, channel_id, message):
         logger.error(f"Gönderilmedi {e}")  
 
 def check_appointment(config):  
-    driver = None  
+    driver = Driver(uc=True)  
     try:  
         # Chrome options ayarları  
         chrome_options = webdriver.ChromeOptions()  
@@ -54,14 +55,14 @@ def check_appointment(config):
         chrome_options.add_argument('--no-sandbox')  
         chrome_options.add_argument('--disable-dev-shm-usage')  
         
-        driver = webdriver.Chrome(options=chrome_options)  
-        driver.get(config['web_url'])  
-        
-        time.sleep(20)  # Sayfa yüklenmesi için 20 saniye bekle
-        
-        # Bu aşamayı henüz göremedik  
+        driver.uc_open_with_reconnect(config['web_url'], 4)        
+        #driver.uc_gui.click_captcha() // gerek kalmadı 
+        logger.info("5 sn bekleniyor")  
+        time.sleep(1)  # Captcha geçiyoruz
+        # Doldurmaya başlayalım
         for dropdown_id, value in config['dropdowns'].items():  
             try:  
+                logger.error("eklendi")
                 dropdown = WebDriverWait(driver, 10).until(  
                     EC.presence_of_element_located((By.ID, dropdown_id))  
                 )  
@@ -73,6 +74,8 @@ def check_appointment(config):
                 logger.error(f"{dropdown_id} doldurulurken hata: {e}")  
                 raise  
         
+        time.sleep(5)
+
         # Alert mesajını kontrol et  
         try:  
             alert_element = WebDriverWait(driver, 10).until(  

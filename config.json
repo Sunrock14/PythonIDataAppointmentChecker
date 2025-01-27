@@ -2,8 +2,8 @@
   "web_url": "https://ita-schengen.idata.com.tr/tr/appointment-form",
   "check_interval": 60,
   "dropdowns": {
-    "city": "34",
-    "office": "8",
+    "ajaxcity": "34",
+    "ajaxoffice": "8",
     "getapplicationtype": "2",
     "officetype": "1",
     "totalPerson": "1"
