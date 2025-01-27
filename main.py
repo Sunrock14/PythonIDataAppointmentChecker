@@ -37,15 +37,24 @@ def load_config():
 def send_telegram_message(bot_token, channel_id, message):  
     try:  
         bot = Bot(token=bot_token)  
-        bot.send_message(  
+                    
+        logger.info(f"Mesaj gönderiliyor - Kanal ID: {channel_id}")
+        logger.info(f"Mesaj içeriği: {message}")
+        
+        result = bot.send_message(  
             chat_id=channel_id,  
             text=message,  
             parse_mode='HTML'  
         )  
-        logger.info(bot_token)  
-        logger.info("Gönderildi!")  
+        
+        if result:
+            logger.info("Mesaj başarıyla gönderildi!")
+        else:
+            logger.error("Mesaj gönderimi başarısız oldu")
+            
     except Exception as e:  
-        logger.error(f"Gönderilmedi {e}")  
+        logger.error(f"Telegram mesajı gönderilirken hata oluştu: {str(e)}")
+        raise  
 
 def check_appointment(config):  
     driver = Driver(uc=True)  
