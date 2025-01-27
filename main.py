@@ -42,56 +42,50 @@ def send_telegram_message(bot_token, channel_id, message):
             text=message,  
             parse_mode='HTML'  
         )  
+        logger.info(bot_token)  
         logger.info("Gönderildi!")  
     except Exception as e:  
         logger.error(f"Gönderilmedi {e}")  
 
 def check_appointment(config):  
     driver = Driver(uc=True)  
-    try:  
-        # Chrome options ayarları  
+    try:          
         chrome_options = webdriver.ChromeOptions()  
         # chrome_options.add_argument('--headless')  # Tarayıcıyı arka planda çalıştır  
         chrome_options.add_argument('--no-sandbox')  
         chrome_options.add_argument('--disable-dev-shm-usage')  
         
-        driver.uc_open_with_reconnect(config['web_url'], 4)        
-        #driver.uc_gui.click_captcha() // gerek kalmadı 
-        logger.info("5 sn bekleniyor")  
-        time.sleep(1)  # Captcha geçiyoruz
-        # Doldurmaya başlayalım
-        for dropdown_id, value in config['dropdowns'].items():  
+        driver.uc_open_with_reconnect(config['web_url'], 2)        
+        time.sleep(1)  
+        
+        for dropdown_id, dropdown_value in config['dropdowns'].items():  
             try:  
-                # Önce dropdown'u aç                
-                dropdown_element = WebDriverWait(driver, 2).until(
-                    EC.element_to_be_clickable((By.ID, dropdown_id))
-                )
+                # Önce dropdown'u aç
+                dropdown_element = WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.ID, dropdown_id)))
                 dropdown_element.click()
-                time.sleep(1)  # Dropdown menünün açılması için kısa bekleme
+                time.sleep(1)  
 
-                # Dropdown içindeki seçeneklerden istediğimiz değeri bul ve tıkla
-                option = WebDriverWait(driver, 2).until(
-                    EC.element_to_be_clickable((By.XPATH, f"//div[@role='option'][contains(., '{value}')]"))
-                )
-                logger.info(value)
-                option.click()
-                
-                logger.info(f"{dropdown_id} dolduruldu")
-                time.sleep(1)  # Her seçim sonrası kısa bekleme
+                select = Select(dropdown_element) 
+                select.select_by_value(dropdown_value)  #Değeri seç
+                time.sleep(1)  
             except Exception as e:  
                 logger.error(f"{dropdown_id} doldurulurken hata: {e}")  
                 raise  
         
-        time.sleep(5)
+        time.sleep(1)
 
         # Alert mesajını kontrol et  
         try:  
-            alert_element = WebDriverWait(driver, 10).until(  
-                EC.presence_of_element_located((By.ID, config['alert_message']['element_id']))  
+            # Butonu ID ile bulma  
+            button = WebDriverWait(driver, 2).until(  
+                EC.presence_of_element_located((By.ID, "btnAppCountNext"))  
             )  
-            alert_text = alert_element.text.strip()  
             
-            if config['alert_message']['success_text'] in alert_text:  
+            # Butonun display stilini kontrol etme  s
+            display_style = button.value_of_css_property('display')  
+            
+            if display_style == 'block':  
+                logger.info("Buton görünür durumda, işlem yapılıyor...")  
                 message = f"""  
                                 <b>Randevu Bulundu!</b>  
                                 <b>Link:</b>  
@@ -102,7 +96,17 @@ def check_appointment(config):
                     config['telegram']['channel_id'],  
                     message  
                 )  
-            else:  
+                #button.click()    
+
+            else:
+                message = f"""  
+                                <b>Randevu yok!</b>  
+                                """  
+                send_telegram_message(  
+                    config['telegram']['bot_token'],  
+                    config['telegram']['channel_id'],  
+                    message  
+                )  
                 logger.info("N")  
                 
         except TimeoutException:  
