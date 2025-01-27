@@ -1,0 +1,19 @@
+{
+  "web_url": "https://ita-schengen.idata.com.tr/tr/appointment-form",
+  "check_interval": 60,
+  "dropdowns": {
+    "city": "34",
+    "office": "8",
+    "getapplicationtype": "2",
+    "officetype": "1",
+    "totalPerson": "1"
+  },
+  "alert_message": {
+    "element_id": "alert_div_id",
+    "success_text": "Randevu bulundu"
+  },
+  "telegram": {
+    "bot_token": "BOT_TOKEN_BURAYA",
+    "channel_id": "KANAL_ID_BURAYA"
+  }
+}
