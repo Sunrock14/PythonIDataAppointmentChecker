@@ -1,0 +1,2 @@
+seleniumbase
+python-telegram-bot==20.3

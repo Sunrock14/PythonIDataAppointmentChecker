@@ -1,6 +1,6 @@
 {
   "web_url": "https://ita-schengen.idata.com.tr/tr/appointment-form",
-  "check_interval": 600,
+  "check_interval": 1200,
   "dropdowns": {
     "city": "34",
     "office": "8",
@@ -9,7 +9,7 @@
     "totalPerson": "1"
   },
   "telegram": {
-    "bot_token": "token",
-    "channel_id": "channel_id"
+    "bot_token": "7741886926:AAHgSrSilI6ZCGOo5tyyjeOHtmUmKmWhZK4",
+    "channel_id": "1658023288"
   }
 }

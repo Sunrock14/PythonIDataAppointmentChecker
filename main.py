@@ -1,4 +1,5 @@
-﻿import json
+﻿#IData sitesinden randevu açılışını kontrol eden bir program
+import json
 import time
 import asyncio
 import logging
@@ -73,7 +74,6 @@ async def handle_dropdown(
         raise
 
 async def check_appointment(config: dict):
-    """Check for appointment availability."""
     driver = None
     try:
         chrome_options = webdriver.ChromeOptions()
@@ -119,11 +119,11 @@ async def check_appointment(config: dict):
                 "<b>Randevu bulunamadı!</b>"
             )
             # test edildi
-            #success = await send_telegram_message(
-            #    config['telegram']['bot_token'],
-            #    config['telegram']['channel_id'],
-            #    message
-            #)
+            success = await send_telegram_message(
+                config['telegram']['bot_token'],
+                config['telegram']['channel_id'],
+                message
+            )
             logger.info("No appointment available")
 
     except TimeoutException:
@@ -157,6 +157,6 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-# Uc için seleniumbase docs içinde gerekli option bulamadım
+# google options için seleniumbase docs içinde gerekli option bulamadım
 # fakat python main.py --headless komutuyla çalıştırırsak 
 # tarayıcı açılmadan gerekli kontrolleri sağlayabiliyor ve varsayılan şekilde çalıştırabiliyoruz.
