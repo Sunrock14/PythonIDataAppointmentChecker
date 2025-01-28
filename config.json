@@ -8,12 +8,8 @@
     "officetype": "1",
     "totalPerson": "1"
   },
-  "alert_message": {
-    "element_id": "alert_div_id",
-    "success_text": "Randevu bulundu"
-  },
   "telegram": {
-    "bot_token": "7669818545:AAGBghPPcpAnkO-WmfHw8mwbOH_Zh3E9lxU",
-    "channel_id": "-100myfaruktestbot"
+    "bot_token": "token",
+    "channel_id": "channel_id"
   }
 }

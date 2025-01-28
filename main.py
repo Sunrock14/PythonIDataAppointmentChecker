@@ -1,152 +1,162 @@
-﻿import json  
-import time  
-from datetime import datetime  
-import logging  
-from selenium import webdriver  
+﻿import json
+import time
+import asyncio
+import logging
+from datetime import datetime
+from selenium import webdriver
 from seleniumbase import Driver
-from selenium.webdriver.common.by import By  
-from selenium.webdriver.support.ui import Select  
-from selenium.webdriver.support.ui import WebDriverWait  
-from selenium.webdriver.support import expected_conditions as EC  
-from selenium.common.exceptions import TimeoutException, WebDriverException  
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from telegram import Bot  
 
-# Loglama ayarları  
-logging.basicConfig(  
-    level=logging.INFO,  
-    format='%(asctime)s - %(levelname)s - %(message)s',  
-    handlers=[  
-        logging.FileHandler('randevu_kontrol.log', encoding='utf-8'),  
-        logging.StreamHandler()  
-    ]  
-)  
-logger = logging.getLogger(__name__)  
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('randevu_kontrol.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
-def load_config():  
-    try:  
-        try:  
-            with open('config.json', 'r', encoding='utf-8') as file:  
-                return json.load(file)  
-        except UnicodeDecodeError:  
-            with open('config.json', 'r', encoding='windows-1254') as file:  
-                return json.load(file)  
-    except Exception as e:  
-        logger.error(f"Hata :{e}")  
+async def load_config() -> dict:
+    try:
+        encodings = ['utf-8', 'windows-1254']
+        for encoding in encodings:
+            try:
+                with open('config.json', 'r', encoding=encoding) as file:
+                    return json.load(file)
+            except UnicodeDecodeError:
+                continue
+        raise ValueError("Unsupported encoding")
+    except Exception as e:
+        logger.error(f"Configuration loading error: {e}")
         raise
 
-def send_telegram_message(bot_token, channel_id, message):  
-    try:  
-        bot = Bot(token=bot_token)  
-                    
-        logger.info(f"Mesaj gönderiliyor - Kanal ID: {channel_id}")
-        logger.info(f"Mesaj içeriği: {message}")
+async def send_telegram_message(
+        bot_token: str, 
+        channel_id: str, 
+        message: str) -> bool:
+    try:
+        bot = Bot(token=bot_token)
+        await bot.send_message(
+            chat_id=channel_id,
+            text=message,
+            parse_mode='HTML'
+        )
+        logger.info("Message sent successfully!")
+        return True
+    except Exception as e:
+        logger.error(f"Telegram message sending error: {str(e)}")
+        return False
+
+async def handle_dropdown(
+        driver: Driver,
+        dropdown_id: str,
+        dropdown_value: str,
+        wait_time: int = 2):
+    try:
+        dropdown_element = WebDriverWait(driver, wait_time).until(
+            EC.element_to_be_clickable((By.ID, dropdown_id))
+        )
+        dropdown_element.click()
+        await asyncio.sleep(1)
+
+        select = Select(dropdown_element)
+        select.select_by_value(dropdown_value)
+        await asyncio.sleep(1)
+    except Exception as e:
+        logger.error(f"Error filling dropdown {dropdown_id}: {e}")
+        raise
+
+async def check_appointment(config: dict):
+    """Check for appointment availability."""
+    driver = None
+    try:
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--headless')
+        #chrome options seleneiumbase ile veremedik
+        driver = Driver(uc=True) #options desteklemiyor
+        driver.uc_open_with_reconnect(config['web_url'], 2)
+        await asyncio.sleep(1)
+
+        for dropdown_id, dropdown_value in config['dropdowns'].items():
+            await handle_dropdown(driver, dropdown_id, dropdown_value)
+
+        button = WebDriverWait(driver, 2).until(
+            EC.presence_of_element_located((By.ID, "btnAppCountNext"))
+        )
         
-        result = bot.send_message(  
-            chat_id=channel_id,  
-            text=message,  
-            parse_mode='HTML'  
-        )  
+        display_style = button.value_of_css_property('display')
         
-        if result:
-            logger.info("Mesaj başarıyla gönderildi!")
+        message = (
+            "<b>Randevu Bulundu!</b>\n"
+            f"<b>Link:</b>\n{config['web_url']}"
+        )
+                
+        if display_style == 'block':
+            logger.info("Appointment found!")
+            # Uncomment to enable automatic clicking
+
+            message = (
+                "<b>Randevu Bulundu!</b>\n"
+                f"<b>Link:</b>\n{config['web_url']}"
+            )
+            
+            success = await send_telegram_message(
+                config['telegram']['bot_token'],
+                config['telegram']['channel_id'],
+                message
+            )
         else:
-            logger.error("Mesaj gönderimi başarısız oldu")
-            
-    except Exception as e:  
-        logger.error(f"Telegram mesajı gönderilirken hata oluştu: {str(e)}")
-        raise  
 
-def check_appointment(config):  
-    driver = Driver(uc=True)  
-    try:          
-        chrome_options = webdriver.ChromeOptions()  
-        # chrome_options.add_argument('--headless')  # Tarayıcıyı arka planda çalıştır  
-        chrome_options.add_argument('--no-sandbox')  
-        chrome_options.add_argument('--disable-dev-shm-usage')  
-        
-        driver.uc_open_with_reconnect(config['web_url'], 2)        
-        time.sleep(1)  
-        
-        for dropdown_id, dropdown_value in config['dropdowns'].items():  
-            try:  
-                # Önce dropdown'u aç
-                dropdown_element = WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.ID, dropdown_id)))
-                dropdown_element.click()
-                time.sleep(1)  
+            message = (
+                "<b>Randevu bulunamadı!</b>"
+            )
+            # test edildi
+            #success = await send_telegram_message(
+            #    config['telegram']['bot_token'],
+            #    config['telegram']['channel_id'],
+            #    message
+            #)
+            logger.info("No appointment available")
 
-                select = Select(dropdown_element) 
-                select.select_by_value(dropdown_value)  #Değeri seç
-                time.sleep(1)  
-            except Exception as e:  
-                logger.error(f"{dropdown_id} doldurulurken hata: {e}")  
-                raise  
-        
-        time.sleep(1)
+    except TimeoutException:
+        logger.warning("Button not found!")
+    except WebDriverException as e:
+        logger.error(f"WebDriver error: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+    finally:
+        if driver:
+            driver.quit()
 
-        # Alert mesajını kontrol et  
-        try:  
-            # Butonu ID ile bulma  
-            button = WebDriverWait(driver, 2).until(  
-                EC.presence_of_element_located((By.ID, "btnAppCountNext"))  
-            )  
-            
-            # Butonun display stilini kontrol etme  s
-            display_style = button.value_of_css_property('display')  
-            
-            if display_style == 'block':  
-                logger.info("Buton görünür durumda, işlem yapılıyor...")  
-                message = f"""  
-                                <b>Randevu Bulundu!</b>  
-                                <b>Link:</b>  
-                                {config['web_url']}  
-                                """  
-                send_telegram_message(  
-                    config['telegram']['bot_token'],  
-                    config['telegram']['channel_id'],  
-                    message  
-                )  
-                #button.click()    
+async def main():
+    config = await load_config()
+    logger.info("Program started")
+    
+    try:
+        while True:
+            try:
+                await check_appointment(config)
+                logger.info(f"Waiting {config['check_interval']} seconds...")
+                await asyncio.sleep(config['check_interval'])
+            except Exception as e:
+                logger.error(f"Error occurred: {e}")
+                await asyncio.sleep(30)
+    except KeyboardInterrupt:
+        logger.info("Program terminated by user")
+    except Exception as e:
+        logger.error(f"Program terminated unexpectedly: {e}")
 
-            else:
-                message = f"""  
-                                <b>Randevu yok!</b>  
-                                """  
-                send_telegram_message(  
-                    config['telegram']['bot_token'],  
-                    config['telegram']['channel_id'],  
-                    message  
-                )  
-                logger.info("N")  
-                
-        except TimeoutException:  
-            logger.warning("Alert mesajı bulunamadı")  
-            
-    except WebDriverException as e:  
-        logger.error(f"WebDriver hatası: {e}")  
-    except Exception as e:  
-        logger.error(f"Beklenmeyen hata: {e}")  
-    finally:  
-        if driver:  
-            driver.quit()  
+if __name__ == "__main__":
+    asyncio.run(main())
 
-def main():  
-    try:  
-        config = load_config()  
-        logger.info("Program başlatıldı")  
-        
-        while True:  
-            try:  
-                check_appointment(config)  
-                logger.info(f"{config['check_interval']} saniye bekleniyor...")  
-                time.sleep(config['check_interval'])  
-            except Exception as e:  
-                logger.error(f"hata oluştu: {e}")  
-                time.sleep(30)  
-                
-    except KeyboardInterrupt:  
-        logger.info("Program kullanıcı tarafından sonlandırıldı")  
-    except Exception as e:  
-        logger.error(f"Program beklenmeyen şekilde sonlandı: {e}")  
-
-if __name__ == "__main__":  
-    main()  
+# Uc için seleniumbase docs içinde gerekli option bulamadım
+# fakat python main.py --headless komutuyla çalıştırırsak 
+# tarayıcı açılmadan gerekli kontrolleri sağlayabiliyor ve varsayılan şekilde çalıştırabiliyoruz.
