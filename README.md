@@ -16,8 +16,11 @@ Bir randevu mevcut olduğunda, kullanıcının belirttiği bir Telegram kanalın
 - Config dosyasındaki bilgiler kontrol edilir/kişileştirilir.
 - Telegram -> BotFather üstünden yeni bir bot açılır ve isim seçilir (exp:idatatestcheckerbot)
 - Token Config dosyasına eklenir.
-- "python main.py --headless" komutuyla proje çalıştırılır. (Son update ile idata sitesine CAPTHA eklenmiş anlık olarak çalışmıyor.)
-- Alternatif olarak "python main.py" kullanılarak çalıştırılır. Bu seçenekte bazen CloudFlare doğrulaması geçilemiyor. Ve her istekte tarayıcı açılıyor.
+- "python main.py --headless" komutuyla proje çalıştırılır. 
+- Alternatif olarak "python main.py" kullanılarak çalıştırılır
+- Randevu varsa telegram kanalına mesaj atılır(Linkle birlikte).
+- Kullanıcı link ile kendisi randevu almalıdır.
+
 
 ## Kurulum
 0. Python kurulumu yapılır.(https://www.python.org/downloads/)

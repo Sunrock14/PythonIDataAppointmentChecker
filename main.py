@@ -91,7 +91,9 @@ async def check_appointment(config: dict):
         button = WebDriverWait(driver, 2).until(
             EC.presence_of_element_located((By.ID, "btnAppCountNext"))
         )
-        
+
+        # Buradaki Temel mantığım eğer button aktif olursa randevu bulundu demektir.
+        # Ve Randevu bulunduğunda telegram mesajı gönderilecek.
         display_style = button.value_of_css_property('display')
         
         message = (
@@ -99,32 +101,30 @@ async def check_appointment(config: dict):
             f"<b>Link:</b>\n{config['web_url']}"
         )
                 
-        if display_style == 'block':
-            logger.info("Appointment found!")
-            # Uncomment to enable automatic clicking
+        if display_style != 'block':
 
+            logger.info("No appointment available")
+            message = (
+                "<b>Randevu bulunamadı!</b>"
+            )
+            await send_telegram_message(
+                config['telegram']['bot_token'],
+                config['telegram']['channel_id'],
+                message
+            )
+            logger.info("Appointment found!")
+        else:
             message = (
                 "<b>Randevu Bulundu!</b>\n"
                 f"<b>Link:</b>\n{config['web_url']}"
             )
             
-            success = await send_telegram_message(
+            await send_telegram_message(
                 config['telegram']['bot_token'],
                 config['telegram']['channel_id'],
                 message
             )
-        else:
 
-            message = (
-                "<b>Randevu bulunamadı!</b>"
-            )
-            # test edildi
-            success = await send_telegram_message(
-                config['telegram']['bot_token'],
-                config['telegram']['channel_id'],
-                message
-            )
-            logger.info("No appointment available")
 
     except TimeoutException:
         logger.warning("Button not found!")

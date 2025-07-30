@@ -9,7 +9,7 @@
     "totalPerson": "1"
   },
   "telegram": {
-    "bot_token": "",
-    "channel_id": ""
+    "bot_token": "xxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxx",
+    "channel_id": "xxxxxxxxx"
   }
 }
